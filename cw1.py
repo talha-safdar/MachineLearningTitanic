@@ -23,14 +23,8 @@ data['embarked'] = le.fit_transform(data['embarked'])
 x = data.drop('survived', axis=1)
 y = data['survived']
 
-# check columns datatypes
-#print(data.dtypes) 
-#print(data['survived'].isnull().sum())
+# remove NaN rows in the column
 data = data.dropna(subset=['survived'])
-#data = data.dropna(subset=['sex'])
-#data = data.dropna(subset=['age'])
-#data = data.dropna(subset=['fare'])
-#data = data.dropna(subset=['embarked'])
 
 scaler = StandardScaler()
 x = scaler.fit_transform(x)
@@ -44,7 +38,6 @@ valid_indices = ~np.isnan(y_train)
 # Filter x_train and y_train using these indices
 x_train = x_train[valid_indices]
 y_train = y_train[valid_indices]
-#print(y_train.value_counts(dropna=False))
 
 # training and evaluation
 models = {
