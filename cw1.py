@@ -1,7 +1,9 @@
 # import libraries
 import pandas as pd
 import numpy as np
+from numpy import hstack
 from sklearn.svm import SVC
+from sklearn.cluster import KMeans
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -9,6 +11,8 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+import warnings
 
 # Variable fields -----------------------------------------------------------------------------
 # hyperparameter for SVM
@@ -69,6 +73,34 @@ valid_indices = ~np.isnan(y_train)
 x_train = x_train[valid_indices]
 y_train = y_train[valid_indices]
 
+# Elbow method ------------------------------------------------------------------------------
+# Suppress the specific FutureWarning
+warnings.filterwarnings('ignore', category=FutureWarning)
+kmeans = KMeans(n_clusters=2, n_init=10)
+
+inertia = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, random_state=42)
+    kmeans.fit(x_train)
+    inertia.append(kmeans.inertia_)
+
+# plt.figure()
+# plt.plot(range(1, 11), inertia)
+# plt.title('The Elbow Method')
+# plt.xlabel('Number of clusters')
+# plt.ylabel('Inertia')
+# plt.show()
+
+#kmeans = KMeans(n_clusters=3, random_state=42)
+# Using the optimal k to cluster the data
+# Fit and predict clusters for the training data
+clusters_train = kmeans.fit_predict(x_train).reshape(-1, 1)
+x_train = hstack([x_train, clusters_train])
+
+# Predict clusters for the test data
+clusters_test = kmeans.predict(x_test).reshape(-1, 1)
+x_test = hstack([x_test, clusters_test])
+
 # normalize data ----------------------------------------------------------------------------
 scaler = StandardScaler()
 # Fit on training set only
@@ -110,6 +142,10 @@ grid_search_svm.fit(x_train, y_train)
 grid_search_gb.fit(x_train, y_train)
 # print("Best Hyperparameter for Gradient Boosting:", grid_search_gb.best_params_)
 
+# Random forest with clustering
+rf = RandomForestClassifier(random_state=42)
+rf.fit(x_train, y_train)
+
 # Evaluation --------------------------------------------------------------------------------
 # Decision tre
 print(f"Decision Tree Accuracy: {accuracy_score(y_test, dt_pred) * 100:.2f}%")
@@ -134,3 +170,6 @@ print(f"Optimized SVM Accuracy: {grid_search_svm.best_estimator_.score(x_test, y
 
 # Gradient boosting (hyperparameter tuning)
 print(f"Optimized Gradient Boosting Accuracy: {grid_search_gb.best_estimator_.score(x_test, y_test) * 100:.2f}")
+
+# Random forest with clustering
+print(f"Random Forest Accuracy (with clustering): {rf.score(x_test, y_test) * 100:.2}%")
