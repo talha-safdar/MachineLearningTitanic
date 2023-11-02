@@ -55,20 +55,38 @@ data = pd.read_csv(r'C:\LHU\AI\Files\titanic3.csv') # using r to locate the file
 data['age'].fillna(data['age'].mean(), inplace=True)
 data['fare'].fillna(data['age'].median(), inplace=True)
 data['embarked'].fillna(data['embarked'].mode()[0], inplace=True)
-data.drop(['name', 'ticket', 'cabin', 'home.dest', 'boat', 'pclass', 'body'], axis=1, inplace=True)
+
+data['Title'] = data['name'].str.extract(r'([A-Za-z]+)\.', expand=False)
+
+median_ages = data.groupby('Title')['age'].median()
+for title, median_age in median_ages.items():
+    condition = (data['age'].isnull()) & (data['Title'] == title)
+    data.loc[condition, 'age'] = median_age
+
+if data['age'].isnull().sum() > 0:
+    data['age'].fillna(data['age'].median(), inplace=True)
+
+data.drop(['ticket', 'cabin', 'home.dest', 'boat', 'pclass', 'body', 'name'], axis=1, inplace=True)
+
 le = LabelEncoder()
 data['sex'] = le.fit_transform(data['sex'])
 data['embarked'] = le.fit_transform(data['embarked'])
+data['Title'] = le.fit_transform(data['Title'])
 
 x = data.drop('survived', axis=1)
 y = data['survived']
 
-data = data.dropna(subset=['survived']) # remove NaN rows in the column
+#data = data.dropna(subset=['survived']) # remove NaN rows in the column
+x = data.drop('survived', axis=1)
+y = data['survived']
 
 scaler = StandardScaler()
 x = scaler.fit_transform(x)
 # create a new column in the dataset
-data['Title'] = data['sex'].map({'male': 'Mr',  'female': 'Miss/Mrs'})
+#data['Title'] = data['sex'].map({'male': 'Mr',  'female': 'Miss/Mrs'})
+
+
+
 # converting string to numbers male=1 and female=0
 title_mapping_numeric  = {"Mr": 1, "Miss/Mrs": 2}
 data['Title'] = data['Title'].map(title_mapping_numeric)
