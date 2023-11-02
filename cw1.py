@@ -3,17 +3,34 @@ import pandas as pd
 import numpy as np
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 
+# Variable fields -----------------------------------------------------------------------------
+# hyperparameter for SVM
+param_grid_svm = {
+    'C': [0.1, 1, 10, 100],
+    'kernel': ['linear', 'rbf'],
+    'gamma': [1, 0.1, 0.01, 0.001]
+}
+
+# hyperparameter for Gradient boosting
+param_grid_gb = {
+    'n_estimators': [50, 100, 200],
+    'learning_rate': [0.01, 0.05, 0.1, 0.5],
+    'max_depth': [3, 4, 5]
+}
+
 # initializations ----------------------------------------------------------------------------
 svm_model = SVC(kernel='linear') # SVM
 gb_model = GradientBoostingClassifier()
 knn_model = KNeighborsClassifier(n_neighbors=5) # number of neighbors can be changed
+grid_search_svm = GridSearchCV(SVC(), param_grid_svm, verbose=2, n_jobs=-1, cv=5)
+grid_search_gb = GridSearchCV(GradientBoostingClassifier(), param_grid_gb, verbose=2, n_jobs=-1, cv=5)
 
 # dataset loading ---------------------------------------------------------------------------
 data = pd.read_csv(r'C:\LHU\AI\Files\titanic3.csv') # using r to locate the file
@@ -85,6 +102,14 @@ gb_model.fit(x_train, y_train)
 # K-Nearest Neighbors
 knn_model.fit(x_train, y_train)
 
+# Support vector machine (hyperparameter tuning)
+grid_search_svm.fit(x_train, y_train)
+# print("Best Hyperparameter for SVM:", grid_search_svm.best_params_)
+
+# Gradient boosting (hyperparameter tuning)
+grid_search_gb.fit(x_train, y_train)
+# print("Best Hyperparameter for Gradient Boosting:", grid_search_gb.best_params_)
+
 # Evaluation --------------------------------------------------------------------------------
 # Decision tre
 print(f"Decision Tree Accuracy: {accuracy_score(y_test, dt_pred) * 100:.2f}%")
@@ -103,3 +128,9 @@ print(f"Gradient boosting Accuracy: {gb_model.score(x_test, y_test) * 100:.2f}%"
 
 # K-Nearest Neighbors
 print(f"KNN Accuracy: {knn_model.score(x_test, y_test) * 100:.2f}%")
+
+# Support vector machine (hyperparameter tuning)
+print(f"Optimized SVM Accuracy: {grid_search_svm.best_estimator_.score(x_test, y_test) * 100:.2f}%")
+
+# Gradient boosting (hyperparameter tuning)
+print(f"Optimized Gradient Boosting Accuracy: {grid_search_gb.best_estimator_.score(x_test, y_test) * 100:.2f}")
