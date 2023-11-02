@@ -9,12 +9,13 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
+from sklearn.ensemble import AdaBoostClassifier
 import warnings
 
-# Variable fields -----------------------------------------------------------------------------
+# Variable fields ------------------------------------------------------------------------ -----
 # hyperparameter for SVM
 param_grid_svm = {
     'C': [0.1, 1, 10, 100],
@@ -31,10 +32,21 @@ param_grid_gb = {
 
 # initializations ----------------------------------------------------------------------------
 svm_model = SVC(kernel='linear') # SVM
+
 gb_model = GradientBoostingClassifier()
+
 knn_model = KNeighborsClassifier(n_neighbors=5) # number of neighbors can be changed
+
 grid_search_svm = GridSearchCV(SVC(), param_grid_svm, verbose=2, n_jobs=-1, cv=5)
 grid_search_gb = GridSearchCV(GradientBoostingClassifier(), param_grid_gb, verbose=2, n_jobs=-1, cv=5)
+
+# Regression
+reg = LinearRegression()
+
+# Ensemble method
+base_estimator = DecisionTreeClassifier(max_depth=1)
+ada_clf = AdaBoostClassifier(base_estimator=base_estimator, n_estimators=50, random_state=42)
+
 
 # dataset loading ---------------------------------------------------------------------------
 data = pd.read_csv(r'C:\LHU\AI\Files\titanic3.csv') # using r to locate the file
@@ -84,22 +96,19 @@ for i in range(1, 11):
     kmeans.fit(x_train)
     inertia.append(kmeans.inertia_)
 
-# plt.figure()
-# plt.plot(range(1, 11), inertia)
-# plt.title('The Elbow Method')
-# plt.xlabel('Number of clusters')
-# plt.ylabel('Inertia')
-# plt.show()
+plt.figure()
+plt.plot(range(1, 11), inertia)
+plt.title('The Elbow Method')
+plt.xlabel('Number of clusters')
+plt.ylabel('Inertia')
+plt.show()
 
-#kmeans = KMeans(n_clusters=3, random_state=42)
-# Using the optimal k to cluster the data
-# Fit and predict clusters for the training data
-clusters_train = kmeans.fit_predict(x_train).reshape(-1, 1)
-x_train = hstack([x_train, clusters_train])
+#clusters_train = kmeans.fit_predict(x_train).reshape(-1, 1) ###
+#x_train = hstack([x_train, clusters_train])
 
-# Predict clusters for the test data
-clusters_test = kmeans.predict(x_test).reshape(-1, 1)
-x_test = hstack([x_test, clusters_test])
+# Predict clusters for the test data ##
+#clusters_test = kmeans.predict(x_test).reshape(-1, 1)
+#x_test = hstack([x_test, clusters_test])
 
 # normalize data ----------------------------------------------------------------------------
 scaler = StandardScaler()
@@ -142,9 +151,24 @@ grid_search_svm.fit(x_train, y_train)
 grid_search_gb.fit(x_train, y_train)
 # print("Best Hyperparameter for Gradient Boosting:", grid_search_gb.best_params_)
 
-# Random forest with clustering
-rf = RandomForestClassifier(random_state=42)
-rf.fit(x_train, y_train)
+# Random forest with clustering ###
+#rf = RandomForestClassifier(random_state=42)
+#rf.fit(x_train, y_train)
+
+# Regression
+reg.fit(x_train, y_train)
+y_train_pred = reg.predict(x_train)
+y_test_pred = reg.predict(x_test)
+
+# Ensemble method
+ada_clf.fit(x_train, y_train)
+
+# Threshold ---------------------------------------------------------------------------------
+# Regression
+y_train_pred_class = [1 if prob > 0.5 else 0 for prob in y_train_pred]
+y_test_pred_class = [1 if prob > 0.5 else 0 for prob in y_test_pred]
+train_accuracy = accuracy_score(y_train, y_train_pred_class)
+test_accuracy = accuracy_score(y_test, y_test_pred_class)
 
 # Evaluation --------------------------------------------------------------------------------
 # Decision tre
@@ -171,5 +195,13 @@ print(f"Optimized SVM Accuracy: {grid_search_svm.best_estimator_.score(x_test, y
 # Gradient boosting (hyperparameter tuning)
 print(f"Optimized Gradient Boosting Accuracy: {grid_search_gb.best_estimator_.score(x_test, y_test) * 100:.2f}")
 
-# Random forest with clustering
-print(f"Random Forest Accuracy (with clustering): {rf.score(x_test, y_test) * 100:.2}%")
+# Random forest with clustering ###
+#print(f"Random Forest Accuracy (with clustering): {rf.score(x_test, y_test) * 100:.2}%")
+
+# Regression
+print(f"Training Accuracy (regression): {train_accuracy:.2%}")
+print(f"Test Accuracy (regression): {test_accuracy:.2%}")
+
+# Ensemble method
+print(f"Training Accuracy (ensemble method): {accuracy_score(y_train, ada_clf.predict(x_train))*100:.2f}%")
+print(f"Test Accuracy (ensemble method): {accuracy_score(y_test, ada_clf.predict(x_test))*100:.2f}%")
