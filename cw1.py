@@ -11,6 +11,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import cross_val_score
 import matplotlib.pyplot as plt
 from sklearn.ensemble import AdaBoostClassifier
 import warnings
@@ -47,6 +48,8 @@ reg = LinearRegression()
 base_estimator = DecisionTreeClassifier(max_depth=1)
 ada_clf = AdaBoostClassifier(base_estimator=base_estimator, n_estimators=50, random_state=42)
 
+# Cross validation
+model = AdaBoostClassifier(n_estimators=50)
 
 # dataset loading ---------------------------------------------------------------------------
 data = pd.read_csv(r'C:\LHU\AI\Files\titanic3.csv') # using r to locate the file
@@ -76,7 +79,7 @@ data['Title'] = le.fit_transform(data['Title'])
 x = data.drop('survived', axis=1)
 y = data['survived']
 
-#data = data.dropna(subset=['survived']) # remove NaN rows in the column
+data = data.dropna(subset=['survived']) # remove NaN rows in the column
 x = data.drop('survived', axis=1)
 y = data['survived']
 
@@ -85,7 +88,7 @@ x = scaler.fit_transform(x)
 # create a new column in the dataset
 #data['Title'] = data['sex'].map({'male': 'Mr',  'female': 'Miss/Mrs'})
 
-
+scores = cross_val_score(model, x, y, cv=10) # for cross-validation
 
 # converting string to numbers male=1 and female=0
 title_mapping_numeric  = {"Mr": 1, "Miss/Mrs": 2}
@@ -223,3 +226,8 @@ print(f"Test Accuracy (regression): {test_accuracy:.2%}")
 # Ensemble method
 print(f"Training Accuracy (ensemble method): {accuracy_score(y_train, ada_clf.predict(x_train))*100:.2f}%")
 print(f"Test Accuracy (ensemble method): {accuracy_score(y_test, ada_clf.predict(x_test))*100:.2f}%")
+
+# Cross-validation
+print(f"Cross-Validation Scores: {scores}")
+print(f"Mean Accuracy: {scores.mean()}")
+print(f"Standard Deviation: {scores.std()}")
