@@ -12,55 +12,51 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import cross_val_score
-import matplotlib.pyplot as plt
 from sklearn.ensemble import AdaBoostClassifier
+import matplotlib.pyplot as plt
 import warnings
 
-# Variable fields ------------------------------------------------------------------------ -----
-# hyperparameter for SVM
+# Hyperparameter ---
+# Support vector machine
 param_grid_svm = {
     'C': [0.1, 1, 10, 100],
     'kernel': ['linear', 'rbf'],
     'gamma': [1, 0.1, 0.01, 0.001]
 }
 
-# hyperparameter for Gradient boosting
+# Gradient boosting
 param_grid_gb = {
     'n_estimators': [50, 100, 200],
     'learning_rate': [0.01, 0.05, 0.1, 0.5],
     'max_depth': [3, 4, 5]
 }
 
-# initializations ----------------------------------------------------------------------------
-svm_model = SVC(kernel='linear') # SVM
-
-gb_model = GradientBoostingClassifier()
-
+# Initializations ---
+svm_model = SVC(kernel='linear') # support vector machine
+gb_model = GradientBoostingClassifier() # gradient boosting classifier
 knn_model = KNeighborsClassifier(n_neighbors=5) # number of neighbors can be changed
 
 grid_search_svm = GridSearchCV(SVC(), param_grid_svm, verbose=2, n_jobs=-1, cv=5)
 grid_search_gb = GridSearchCV(GradientBoostingClassifier(), param_grid_gb, verbose=2, n_jobs=-1, cv=5)
 
-# Regression
-reg = LinearRegression()
+reg = LinearRegression() # linear regression
 
-# Ensemble method
-base_estimator = DecisionTreeClassifier(max_depth=1)
-ada_clf = AdaBoostClassifier(base_estimator=base_estimator, n_estimators=50, random_state=42)
+base_estimator = DecisionTreeClassifier(max_depth=1) # ensemble method
+ada_clf = AdaBoostClassifier(base_estimator=base_estimator, n_estimators=50, random_state=42) # ensemble method
 
-# Cross validation
-model = AdaBoostClassifier(n_estimators=50)
+model = AdaBoostClassifier(n_estimators=50) # cross validation
 
-# dataset loading ---------------------------------------------------------------------------
+# Dataset Load ---
 data = pd.read_csv(r'C:\LHU\AI\Files\titanic3.csv') # using r to locate the file
 
-# data preprocessing ------------------------------------------------------------------------
-data['age'].fillna(data['age'].mean(), inplace=True)
-data['fare'].fillna(data['age'].median(), inplace=True)
-data['embarked'].fillna(data['embarked'].mode()[0], inplace=True)
+# Data pre-process ---
+data['age'].fillna(data['age'].mean(), inplace=True) # fill empty with mean value
+data['fare'].fillna(data['age'].median(), inplace=True) # fill empty with median value
+data['embarked'].fillna(data['embarked'].mode()[0], inplace=True) # fill empty with mode value
 
-data['Title'] = data['name'].str.extract(r'([A-Za-z]+)\.', expand=False)
+data['Title'] = data['name'].str.extract(r'([A-Za-z]+)\.', expand=False) # extract titles
 
+# fill missing age values with median age
 median_ages = data.groupby('Title')['age'].median()
 for title, median_age in median_ages.items():
     condition = (data['age'].isnull()) & (data['Title'] == title)
@@ -69,6 +65,7 @@ for title, median_age in median_ages.items():
 if data['age'].isnull().sum() > 0:
     data['age'].fillna(data['age'].median(), inplace=True)
 
+# drop columns from the dataset
 data.drop(['ticket', 'cabin', 'home.dest', 'boat', 'pclass', 'body', 'name'], axis=1, inplace=True)
 
 le = LabelEncoder()
@@ -85,8 +82,6 @@ y = data['survived']
 
 scaler = StandardScaler()
 x = scaler.fit_transform(x)
-# create a new column in the dataset
-#data['Title'] = data['sex'].map({'male': 'Mr',  'female': 'Miss/Mrs'})
 
 scores = cross_val_score(model, x, y, cv=10) # for cross-validation
 
@@ -96,7 +91,7 @@ data['Title'] = data['Title'].map(title_mapping_numeric)
 # make a familySize feature  parch=parents/children of a  passenger
 data['FamilySize'] = data['sibsp'] + data['parch'] + 1
 
-# splitting data ----------------------------------------------------------------------------
+# Split Data ---
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
 
 # Get the indices of rows where y_train is not NaN
@@ -106,11 +101,12 @@ valid_indices = ~np.isnan(y_train)
 x_train = x_train[valid_indices]
 y_train = y_train[valid_indices]
 
-# Elbow method ------------------------------------------------------------------------------
+# Elbow Method ---
 # Suppress the specific FutureWarning
 warnings.filterwarnings('ignore', category=FutureWarning)
 kmeans = KMeans(n_clusters=2, n_init=10)
 
+# check the best number of clusters for KMeans
 inertia = []
 for i in range(1, 11):
     kmeans = KMeans(n_clusters=i, random_state=42)
@@ -124,14 +120,7 @@ plt.xlabel('Number of clusters')
 plt.ylabel('Inertia')
 plt.show()
 
-#clusters_train = kmeans.fit_predict(x_train).reshape(-1, 1) ###
-#x_train = hstack([x_train, clusters_train])
-
-# Predict clusters for the test data ##
-#clusters_test = kmeans.predict(x_test).reshape(-1, 1)
-#x_test = hstack([x_test, clusters_test])
-
-# normalize data ----------------------------------------------------------------------------
+# Normalize Data ---
 scaler = StandardScaler()
 # Fit on training set only
 X_train = scaler.fit_transform(x_train)
@@ -139,7 +128,7 @@ X_train = scaler.fit_transform(x_train)
 # Apply same transformation to test set
 X_test = scaler.transform(x_test)
 
-# training ----------------------------------------------------------------------------------
+# Train ---
 # Decision tree
 dt_model = DecisionTreeClassifier()
 dt_model.fit(X_train, y_train)
@@ -166,15 +155,13 @@ knn_model.fit(x_train, y_train)
 
 # Support vector machine (hyperparameter tuning)
 grid_search_svm.fit(x_train, y_train)
-# print("Best Hyperparameter for SVM:", grid_search_svm.best_params_)
 
 # Gradient boosting (hyperparameter tuning)
 grid_search_gb.fit(x_train, y_train)
-# print("Best Hyperparameter for Gradient Boosting:", grid_search_gb.best_params_)
 
-# Random forest with clustering ###
-#rf = RandomForestClassifier(random_state=42)
-#rf.fit(x_train, y_train)
+# Random forest with clustering
+rf = RandomForestClassifier(random_state=42)
+rf.fit(x_train, y_train)
 
 # Regression
 reg.fit(x_train, y_train)
@@ -184,14 +171,14 @@ y_test_pred = reg.predict(x_test)
 # Ensemble method
 ada_clf.fit(x_train, y_train)
 
-# Threshold ---------------------------------------------------------------------------------
+# Threshold ---
 # Regression
 y_train_pred_class = [1 if prob > 0.5 else 0 for prob in y_train_pred]
 y_test_pred_class = [1 if prob > 0.5 else 0 for prob in y_test_pred]
 train_accuracy = accuracy_score(y_train, y_train_pred_class)
 test_accuracy = accuracy_score(y_test, y_test_pred_class)
 
-# Evaluation --------------------------------------------------------------------------------
+# Evaluation ---
 # Decision tre
 print(f"Decision Tree Accuracy: {accuracy_score(y_test, dt_pred) * 100:.2f}%")
 
@@ -216,8 +203,8 @@ print(f"Optimized SVM Accuracy: {grid_search_svm.best_estimator_.score(x_test, y
 # Gradient boosting (hyperparameter tuning)
 print(f"Optimized Gradient Boosting Accuracy: {grid_search_gb.best_estimator_.score(x_test, y_test) * 100:.2f}")
 
-# Random forest with clustering ###
-#print(f"Random Forest Accuracy (with clustering): {rf.score(x_test, y_test) * 100:.2}%")
+# Random forest with clustering
+print(f"Random Forest Accuracy (with clustering): {rf.score(x_test, y_test) * 100:.2}%")
 
 # Regression
 print(f"Training Accuracy (regression): {train_accuracy:.2%}")
